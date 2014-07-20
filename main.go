@@ -69,7 +69,7 @@ func main() {
 	app := cli.NewApp()
 	app.Name = "consulcli"
 	app.Usage = "consul api cli client"
-	app.Version = "0.2.1"
+	app.Version = "0.2.2"
 
 	app.Commands = []cli.Command{
 		{
