@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/armon/consul-api"
 	"github.com/codegangsta/cli"
@@ -27,6 +28,10 @@ func client() *consulapi.Client {
 
 func kv() *consulapi.KV {
 	return client().KV()
+}
+
+func agent() *consulapi.Agent {
+	return client().Agent()
 }
 
 func kvkeys(c *cli.Context) {
@@ -64,6 +69,58 @@ func kvget(c *cli.Context) {
 	fmt.Printf("key: %s, value: %s\n", pair.Key, string(pair.Value))
 }
 
+func findNode(nodeName string) bool {
+	members, err := agent().Members(false)
+	if err != nil {
+		fmt.Printf("err: can't list members\n")
+		return false
+	}
+
+	for _, member := range members {
+		if member.Name == nodeName {
+			return true
+		}
+	}
+
+	return false
+}
+
+func nodeEject(c *cli.Context) {
+	nodeName := c.Args().First()
+
+	if findNode(nodeName) {
+		err := agent().ForceLeave(nodeName)
+		if err != nil {
+			fmt.Printf("err: %s\n", err)
+			return
+		}
+		for {
+			time.Sleep(time.Second * 2)
+			if findNode(nodeName) {
+				fmt.Print(".")
+			} else {
+				break
+			}
+		}
+	} else {
+		fmt.Printf("err: cound't find node %s\n", nodeName)
+	}
+
+	fmt.Printf("removed %s\n", nodeName)
+}
+
+func nodeList(c *cli.Context) {
+	members, err := agent().Members(false)
+	if err != nil {
+		fmt.Printf("err: can't list members\n")
+		return
+	}
+
+	for _, member := range members {
+		fmt.Println(member.Name)
+	}
+}
+
 func main() {
 
 	app := cli.NewApp()
@@ -86,6 +143,16 @@ func main() {
 			Name:   "kvlist",
 			Usage:  "list items in the kv store",
 			Action: kvlist,
+		},
+		{
+			Name:   "node-eject",
+			Usage:  "eject node",
+			Action: nodeEject,
+		},
+		{
+			Name:   "node-list",
+			Usage:  "list nodes",
+			Action: nodeList,
 		},
 	}
 
