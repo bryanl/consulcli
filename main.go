@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"os"
-	"time"
 
 	"github.com/armon/consul-api"
 	"github.com/codegangsta/cli"
@@ -41,6 +40,17 @@ func kvkeys(c *cli.Context) {
 	for _, key := range keys {
 		fmt.Printf("%s\n", key)
 	}
+}
+
+func kvDelTree(c *cli.Context) {
+	prefix := c.Args().First()
+	_, err := kv().DeleteTree(prefix, nil)
+	if err != nil {
+		fmt.Printf("err: %s\n", err)
+		return
+	}
+
+	fmt.Printf("deleted %s\n", prefix)
 }
 
 func kvlist(c *cli.Context) {
@@ -94,14 +104,6 @@ func nodeEject(c *cli.Context) {
 			fmt.Printf("err: %s\n", err)
 			return
 		}
-		for {
-			time.Sleep(time.Second * 2)
-			if findNode(nodeName) {
-				fmt.Print(".")
-			} else {
-				break
-			}
-		}
 	} else {
 		fmt.Printf("err: cound't find node %s\n", nodeName)
 	}
@@ -126,23 +128,28 @@ func main() {
 	app := cli.NewApp()
 	app.Name = "consulcli"
 	app.Usage = "consul api cli client"
-	app.Version = "0.2.2"
+	app.Version = "0.3.0"
 
 	app.Commands = []cli.Command{
 		{
-			Name:   "kvget",
+			Name:   "kv-get",
 			Usage:  "get an item from the kv store",
 			Action: kvget,
 		},
 		{
-			Name:   "kvkeys",
+			Name:   "kv-keys",
 			Usage:  "list keys in the kv store",
 			Action: kvkeys,
 		},
 		{
-			Name:   "kvlist",
+			Name:   "kv-list",
 			Usage:  "list items in the kv store",
 			Action: kvlist,
+		},
+		{
+			Name:   "kv-deltree",
+			Usage:  "delete trees in the kv store",
+			Action: kvDelTree,
 		},
 		{
 			Name:   "node-eject",
